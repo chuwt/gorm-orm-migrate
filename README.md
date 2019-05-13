@@ -60,3 +60,10 @@
         
     - 不init直接执行migrate或者upgrade
         不会造成影响，会先检查必要的条件是否满足
+        
+    - 关于多表
+        model添加下面的function
+        func (*model)MultiTable() int {
+            // 创建几个表就返回几
+            return 10
+        }
