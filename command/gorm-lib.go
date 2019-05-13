@@ -4,12 +4,12 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/jinzhu/gorm"
-	uuid "github.com/satori/go.uuid"
+	"gopkg.in/satori/go.uuid.v1"
 	"strings"
 )
 
-func dropTable(scope *gorm.Scope) string {
-	return fmt.Sprintf("DROP TABLE %v%s;", scope.QuotedTableName(), getScopeOption(scope))
+func dropTable(scope *gorm.Scope, tableName string) string {
+	return fmt.Sprintf("DROP TABLE %v%s;", tableName, getScopeOption(scope))
 }
 
 func getScopeOption(scope *gorm.Scope) string {
@@ -70,7 +70,7 @@ func getIndex(scope *gorm.Scope) ([]string, []string) {
 	return sqlString, downSqlString
 }
 
-func createTable(scope *gorm.Scope) string {
+func createTable(scope *gorm.Scope, tableName string) string {
 	var sqlString []string
 	var tags []string
 	var primaryKeys []string
@@ -96,7 +96,7 @@ func createTable(scope *gorm.Scope) string {
 	}
 
 	//scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v)%s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec()
-	sqlString = append(sqlString, fmt.Sprintf("CREATE TABLE %v (%v %v)%s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, getScopeOption(scope)))
+	sqlString = append(sqlString, fmt.Sprintf("CREATE TABLE %v (%v %v)%s", tableName, strings.Join(tags, ","), primaryKeyStr, getScopeOption(scope)))
 
 	indexSqlString, _ := getIndex(scope)
 	sqlString = append(sqlString, indexSqlString...)

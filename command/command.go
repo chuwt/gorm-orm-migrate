@@ -114,6 +114,10 @@ func writeFile(version, downVersion, upString, downString string) {
 	f.Close()
 }
 
+type multitable interface {
+	MultiTable() int
+}
+
 func Migrate(db *gorm.DB) {
 
 	head := Head(db)
@@ -137,36 +141,46 @@ func Migrate(db *gorm.DB) {
 	for _, value := range MigrateList {
 		scope := db.NewScope(value)
 		tableName := scope.TableName()
-
-		if !scope.Dialect().HasTable(tableName) {
-			// 表不存在
-			// upgrade
-			upString = append(upString, createTable(scope))
-			// downgrade
-			downString = append(downString, dropTable(scope))
-		} else {
-			// 表存在
-			//var is
-			for _, field := range db.NewScope(value).GetModelStruct().StructFields {
-				// 去除relationship
-				if !scope.Dialect().HasColumn(tableName, field.DBName) {
-					if field.IsNormal {
-						sqlTag := scope.Dialect().DataTypeOf(field)
-						sqlString := fmt.Sprintf("ALTER TABLE %v ADD %v %v", scope.QuotedTableName(), scope.Quote(field.DBName), sqlTag)
-						downSqlString := fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.QuotedTableName(), scope.Quote(field.DBName))
-						upString = append(upString, sqlString)
-						downString = append(downString, downSqlString)
-					}
-				}
-				// 建立依赖表
-				//scope.createJoinTable(field)
+		tableNameList := make([]string, 0)
+		if z, ok := scope.Value.(multitable); ok {
+			for i:=0 ; i<z.MultiTable(); i++ {
+				tableNameList = append(tableNameList, fmt.Sprintf("%s_%02d", tableName, i))
 			}
-			// index
-			indexSqlString, indexDownSqlString := getIndex(scope)
-			upString = append(upString, indexSqlString...)
-			downString = append(downString, indexDownSqlString...)
+		} else {
+			tableNameList = append(tableNameList, tableName)
 		}
-		//
+		fmt.Println(tableNameList)
+		for _, tableName := range tableNameList {
+			if !scope.Dialect().HasTable(tableName) {
+				// 表不存在
+				// upgrade
+				upString = append(upString, createTable(scope, tableName))
+				// downgrade
+				downString = append(downString, dropTable(scope, tableName))
+			} else {
+				// 表存在
+				//var is
+				for _, field := range db.NewScope(value).GetModelStruct().StructFields {
+					// 去除relationship
+					if !scope.Dialect().HasColumn(tableName, field.DBName) {
+						if field.IsNormal {
+							sqlTag := scope.Dialect().DataTypeOf(field)
+							sqlString := fmt.Sprintf("ALTER TABLE %v ADD %v %v", tableName, scope.Quote(field.DBName), sqlTag)
+							downSqlString := fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", tableName, scope.Quote(field.DBName))
+							upString = append(upString, sqlString)
+							downString = append(downString, downSqlString)
+						}
+					}
+					// 建立依赖表
+					//scope.createJoinTable(field)
+				}
+				// index
+				indexSqlString, indexDownSqlString := getIndex(scope)
+				upString = append(upString, indexSqlString...)
+				downString = append(downString, indexDownSqlString...)
+			}
+			//
+		}
 	}
 	if upString != nil {
 		fmt.Println(fmt.Sprintf("head: [%s]", version))
@@ -356,13 +370,24 @@ func GetVersion(db *gorm.DB) (*SQLVersion, error) {
 
 func UpdateVersion(db *gorm.DB, versionString string) bool {
 	version := new(SQLVersion)
-	if err := db.First(version).Error; err != nil {
+	if err := db.First(version, "version != ?", "").Error; err != nil && err != gorm.ErrRecordNotFound {
 		return false
 	}
-	oldVersion := version.Version
-	if err := db.Model(version).UpdateColumn("version", versionString).Error; err != nil {
-		return false
+	var oldVersion string
+	if version == nil || version.Version == ""{
+		oldVersion = ""
+		if err := db.Create(&SQLVersion{Version: versionString}).Error; err != nil {
+			fmt.Println("create version error")
+			return false
+		}
+	} else {
+		oldVersion = version.Version
+		if err := db.Model(version).UpdateColumn("version", versionString).Error; err != nil {
+			fmt.Println("update version error")
+			return false
+		}
 	}
+
 	fmt.Println(fmt.Sprintf("head: [%s] -> [%s]", oldVersion, versionString))
 	return true
 }
