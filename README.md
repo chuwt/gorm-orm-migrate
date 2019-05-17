@@ -1,7 +1,11 @@
 # Gorm-orm-migrate
 
 ### 这是啥
-    用于记录数据库版本变更的工具
+    用于记录数据库版本变更的工具, 原型参考python的alembic的migrate方式。
+    支持：
+        - orm创建表(migrate文件包含执行的sql语句)
+        - upgrade和downgrade
+        - 创建多表
 	
 ### 注意事项
     - 只支持gorm
