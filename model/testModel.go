@@ -1,12 +1,16 @@
 package model
 
+import "fmt"
+
+
 type TestApp struct {
+    TableIndex int `gorm:"-"`
     Name string `gorm:"type:varchar(32)"`
     BName string `gorm:"type:varchar(32)"`
 }
 
-func (*TestApp) TableName() string {
-    return "test_app"
+func (testApp *TestApp) TableName() string {
+    return fmt.Sprintf("test_app_%02d", testApp.TableIndex)
 }
 
 /* 用于多表

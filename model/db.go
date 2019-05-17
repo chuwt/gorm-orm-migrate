@@ -12,7 +12,7 @@ var (
 
 func InitPostgresDB() {
     var err error
-    db, err := gorm.Open("postgres", "postgres://postgres@127.0.0.1:5432/test?sslmode=disable")
+    db, err := gorm.Open("postgres", "postgres://postgres@127.0.0.1:5432/flask?sslmode=disable")
 
     if err != nil {
         panic(err)

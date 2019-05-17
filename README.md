@@ -61,9 +61,13 @@
     - 不init直接执行migrate或者upgrade
         不会造成影响，会先检查必要的条件是否满足
         
-    - 关于多表
+    - 关于多表创建
         model添加下面的function
         func (*model)MultiTable() int {
             // 创建几个表就返回几
             return 10
         }
+    - 关于多表使用
+        insertData := User{TableIndex:9, Username: "test"}
+        db.Table(insertData.TableName).Create(insertData)
+        db.Table(insertData.TableName).First(&insertData)
