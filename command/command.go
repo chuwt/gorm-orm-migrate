@@ -21,8 +21,9 @@ var (
 )
 
 func init() {
-	if len(os.Args) == 1 {
+	if len(os.Args) <= 1 {
 		Usage()
+		return
 	}
 	Command = os.Args[1]
 	if len(os.Args) == 3 {
@@ -144,7 +145,7 @@ func Migrate(db *gorm.DB) {
 		tableNameList := make([]string, 0)
 		if z, ok := scope.Value.(multitable); ok {
 			for i:=0 ; i<z.MultiTable(); i++ {
-				tableNameList = append(tableNameList, fmt.Sprintf("%s_%02d", tableName, i))
+				tableNameList = append(tableNameList, fmt.Sprintf("%s_%02d", strings.Split(tableName, "_")[0], i))
 			}
 		} else {
 			tableNameList = append(tableNameList, tableName)
